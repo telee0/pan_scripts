@@ -1,0 +1,105 @@
+#!/usr/bin/expect -f
+
+#
+# [2022070901]
+#
+
+#set uname [lindex $argv 0]
+#set pass [lindex $argv 1]
+#set host [lindex $argv 2]
+
+set uname "admin"
+set pass "admin"
+
+set host [lindex $argv 0]
+set prompt "> $"
+set config_prompt "# $"
+
+set config_list "commit.txt"
+
+set time_delay 10 
+#set time_delay 600 
+set time_interval 300
+
+#set time_delay 10 
+#set time_interval 30
+
+set timeout_commit 300
+
+#
+#
+#
+
+log_user 1
+
+set mypid [pid]
+log_file -noappend "commit-$mypid.log"
+
+spawn /usr/bin/ssh -l $uname $host
+
+expect {
+  "Password: " {
+    sleep 1
+    send "$pass\r"
+  } timeout {send_user "error"}
+}
+
+set timeout 10
+
+expect -re $prompt
+send "set cli pager off\r"
+expect -re $prompt
+send "show system info\r"
+#expect -re $prompt
+#send "clear rule-hit-count vsys vsys-name vsys1 rule-base security rules all\r"
+#expect -re $prompt
+#send "show rule-hit-count vsys vsys-name vsys1 rule-base security rules list \[ AP20 \]\r"
+expect -re $prompt
+send "configure\r"
+
+expect -re $config_prompt
+send "save config to config-$mypid\r"
+
+sleep $time_delay
+
+set timeout $timeout_commit
+
+set f [open "$config_list"]
+set config_files [split [read -nonewline $f] "\n"]
+close $f
+
+foreach config $config_files {
+	# expect -re $config_prompt
+	# send "run show rule-hit-count vsys vsys-name vsys1 rule-base security rules list \[ AP20 \]\r"
+	expect -re $config_prompt
+	send "run show clock\r"
+	expect -re $config_prompt
+	# send "load config from $config\r"
+	send "set vsys vsys1 address a$mypid ip-netmask 1.1.1.1\r"
+	# puts "load config from $config\r"
+	expect -re $config_prompt
+	send "commit\r"
+	expect -re $config_prompt
+	send "run show clock\r"
+
+	sleep $time_interval
+}
+
+expect -re $config_prompt
+send "exit\r"
+
+expect -re $prompt
+send "show jobs all\r"
+expect -re $prompt
+send "exit\r"
+
+#
+#
+#
+
+puts "Initial config saved as config-$mypid"
+puts "CLI session captured and saved in commit-$mypid.log"
+
+exit
+
+# End

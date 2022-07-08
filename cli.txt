@@ -1,0 +1,13 @@
+show clock
+show session info
+set cli pager on
+show session all
+ 
+ 
+q
+set cli pager off
+show running resource-monitor second last 30
+show system resources | match ': '
+show global-protect-gateway statistics
+debug dataplane show ssl-decrypt ssl-stats
+show clock

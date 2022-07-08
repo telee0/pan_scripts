@@ -1,0 +1,94 @@
+#!/usr/bin/expect -f
+
+#
+# [2022070901]
+#
+
+#set uname [lindex $argv 0]
+#set pass [lindex $argv 1]
+#set host [lindex $argv 2]
+
+set uname "admin"
+set pass "admin"
+
+set host [lindex $argv 0]
+set prompt "> $"
+
+set cli_file "cli.txt"
+
+set time_delay 120 
+set time_interval 30
+set intervals 6
+
+# set time_delay 20 
+# set time_interval 20
+# set intervals 18
+
+#
+#
+#
+
+log_user 1
+
+set mypid [pid]
+#log_file cli.log
+log_file -noappend "cli-$mypid.log"
+
+spawn /usr/bin/ssh -o StrictHostKeyChecking=no -l $uname $host
+
+
+expect {
+  "Password: " {
+    sleep 1
+    send "$pass\r"
+  } timeout {send_user "error"}
+}
+
+set timeout 5
+
+expect -re $prompt
+send "set cli pager off\r"
+expect -re $prompt
+send "show system info\r"
+# expect -re $prompt
+# send "debug dataplane fpga state\r"
+# expect -re $prompt
+# send "show system setting ctd-mode\r"
+
+sleep $time_delay
+
+set count $intervals
+
+set f [open "$cli_file"]
+set commands [split [read $f] "\n"]
+close $f
+
+while {$count > 0} {
+	foreach command $commands {
+		expect -re $prompt
+		send "$command\r"
+	}
+
+	set count [expr $count-1]
+
+	sleep $time_interval
+}
+
+#expect -re $prompt
+#send "request tech-support dump\r"
+#expect -re $prompt
+#send "show interface all\r"
+#expect -re $prompt
+#send "show running tunnel flow all filter type ipsec\r"
+expect -re $prompt
+send "exit\r"
+
+#
+#
+#
+
+puts "CLI session captured and saved in cli-$mypid.log"
+
+exit
+
+# End
